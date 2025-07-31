@@ -88,9 +88,10 @@ ws.send(JSON.stringify({
 
 ## 📦 Dependencies
 
-- **Backend**: Go 1.23+, gorilla/websocket, shopspring/decimal
+- **Backend**: Go 1.23+, gorilla/websocket, shopspring/decimal, [pseudocodes/go2ctp](https://github.com/pseudocodes/go2ctp)
 - **Frontend**: D3.js v7, vanilla JavaScript
-- **Data Source**: Binance Futures WebSocket API
+- **Data Source**: Hongyuan Futures CTP,  openctp.cn/DataCenter.html
+
 
 ## 📄 License
 
