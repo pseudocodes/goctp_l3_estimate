@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>L3 Order Book Visualizer</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        font-family: 'Monaco', 'Menlo', monospace;
+        background: #0a0a0a;
+        color: #ffffff;
+        overflow: hidden;
+      }
+
+      .container {
+        display: grid;
+        grid-template-columns: 60% 40%;
+        height: 100vh;
+        width: 100vw;
+        gap: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      #orderbook-chart {
+        background: #111111;
+        border: none;
+        width: 100%;
+        height: 100%;
+        display: block;
+      }
+
+      .combined-sidebar {
+        background: #1a1a1a;
+        border: none;
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+        box-sizing: border-box;
+      }
+
+      .queue-section {
+        flex: 0 0 40%;
+        padding: 10px;
+        border-bottom: 2px solid #333;
+        overflow-y: auto;
+      }
+
+      .book-section {
+        flex: 1;
+        padding: 10px;
+        overflow-y: auto;
+      }
+
+      .level {
+        display: flex;
+        justify-content: space-between;
+        padding: 4px 0;
+        font-size: 13px;
+        border-bottom: 1px solid #333;
+        font-weight: 500;
+      }
+
+      .bid-level {
+        color: #00ff88;
+        background: rgba(0, 255, 136, 0.1);
+        border-radius: 2px;
+        padding: 2px 4px;
+      }
+
+      .ask-level {
+        color: #ff4444;
+        background: rgba(255, 68, 68, 0.1);
+        border-radius: 2px;
+        padding: 2px 4px;
+      }
+
+      .queue-orders {
+        font-size: 9px;
+        color: #888;
+        margin-left: 10px;
+      }
+
+      .order-bar {
+        display: inline-block;
+        height: 3px;
+        margin: 1px;
+        border-radius: 1px;
+      }
+
+      .status {
+        display: none;
+      }
+
+      .ticker-selector {
+        width: fit-content;
+        position: fixed;
+        top: 10px;
+        left: 10px;
+        right: 10px;
+        z-index: 1000;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 20px;
+        background: rgba(26, 26, 26, 0.9);
+        padding: 10px 15px;
+        border-radius: 6px;
+        border: 1px solid #444;
+      }
+
+      .symbol-section {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .controls-section {
+        display: flex;
+        flex-direction: column;
+        align-items: start;
+        gap: 8px;
+        width: 100%;
+      }
+
+      .ticker-selector label {
+        color: #ffff00;
+        font-weight: 600;
+        font-size: 14px;
+      }
+
+      .ticker-selector select {
+        background: #333;
+        color: #fff;
+        border: 1px solid #555;
+        border-radius: 4px;
+        padding: 6px 12px;
+        font-size: 14px;
+        font-family: 'Monaco', 'Menlo', monospace;
+        font-weight: 600;
+        outline: none;
+        cursor: pointer;
+        min-width: 120px; /* 确保有足够宽度显示文本 */
+      }
+
+      .ticker-selector select:hover {
+        border-color: #777;
+        background: #404040;
+      }
+
+      .ticker-selector select:focus {
+        border-color: #ffff00;
+        box-shadow: 0 0 0 2px rgba(255, 255, 0, 0.2);
+      }
+
+      .connection-status {
+        color: #00ff88;
+        font-size: 12px;
+        font-weight: 500;
+      }
+
+      .controls-section h4 {
+        color: #ffff00;
+        margin: 0 0 8px 0;
+        font-size: 12px;
+        text-align: right;
+      }
+
+      .control-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin: 4px 0;
+        gap: 8px;
+        width: 100%;
+      }
+
+      .control-row label {
+        color: #ddd;
+        font-size: 12px;
+        font-weight: 500;
+      }
+
+      .control-row button {
+        background: #333;
+        color: #fff;
+        border: 1px solid #555;
+        border-radius: 4px;
+        padding: 4px 8px;
+        font-size: 11px;
+        font-family: inherit;
+        cursor: pointer;
+        min-width: 60px;
+      }
+
+      .control-row button:hover {
+        background: #404040;
+        border-color: #777;
+      }
+
+      .control-row button.active {
+        background: #ffff00;
+        color: #000;
+        border-color: #ffff00;
+        font-weight: 600;
+      }
+
+      .control-row input[type='range'] {
+        flex: 1;
+        margin: 0 10px;
+      }
+
+      .control-row input[type='number'] {
+        background: #333;
+        color: #fff;
+        border: 1px solid #555;
+        border-radius: 4px;
+        padding: 4px 8px;
+        font-size: 11px;
+        width: 50px;
+        text-align: center;
+      }
+
+      .precision-info {
+        width: 100%;
+        font-size: 10px;
+        color: #888;
+        margin: 5px 0 0 0;
+        text-align: right;
+        border-top: 1px solid #333;
+        padding-top: 6px;
+      }
+
+      h3 {
+        margin: 0 0 10px 0;
+        color: #ffff00;
+        text-align: center;
+        font-size: 16px;
+        border-bottom: 1px solid #444;
+        padding-bottom: 5px;
+      }
+
+      .stats {
+        font-size: 12px;
+        color: #ddd;
+        text-align: center;
+        margin-bottom: 10px;
+        font-weight: 600;
+      }
+
+      h4 {
+        font-size: 14px;
+        margin: 10px 0 5px 0;
+        font-weight: 600;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="status" id="status">L3 Connected</div>
+
+    <div class="ticker-selector">
+      <div class="symbol-section">
+        <label for="ticker-select">Symbol:</label>
+        <select id="ticker-select">
+          <option value="ag2510">ag2510</option>
+          <option value="au2510">au2510</option>
+          <option value="fu2510">fu2510</option>
+          <option value="rb2510">rb2510</option>
+          <option value="IF2510">IF2510</option>
+        </select>
+        <span class="connection-status" id="connection-status">Connected</span>
+      </div>
+
+      <div class="controls-section">
+        <h4>Visualization Controls</h4>
+
+        <div class="control-row">
+          <label>Clustering:</label>
+          <button id="kmeans-toggle">OFF</button>
+        </div>
+
+        <div class="control-row" id="cluster-count-row" style="display: none">
+          <label>Clusters:</label>
+          <input type="range" id="cluster-slider" min="3" max="15" value="10" />
+          <input
+            type="number"
+            id="cluster-number"
+            min="3"
+            max="15"
+            value="10"
+          />
+        </div>
+
+        <div class="control-row">
+          <label>Color Mode:</label>
+          <button id="color-mode-btn">Age-Based</button>
+        </div>
+
+        <div class="control-row">
+          <label>Precision:</label>
+          <button id="precision-refresh">Refresh</button>
+        </div>
+
+        <div class="precision-info" id="precision-info">
+          Price: 2 decimals | Qty: 2 decimals
+        </div>
+      </div>
+    </div>
+
+    <div class="container">
+      <div id="orderbook-chart"></div>
+
+      <div class="combined-sidebar">
+        <div class="queue-section">
+          <h3>Order Queue Visualization</h3>
+          <div class="stats" id="queue-stats"></div>
+          <div id="queue-display"></div>
+        </div>
+
+        <div class="book-section">
+          <h3>L3 Order Book</h3>
+          <div id="book-stats" class="stats"></div>
+          <div id="asks-section"></div>
+          <div
+            id="spread-info"
+            style="text-align: center; color: #ffff00; margin: 10px 0"
+          ></div>
+          <div id="bids-section"></div>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="l3-orderbook.js"></script>
+  </body>
+</html>
